@@ -25,29 +25,29 @@ def create_media_clip(source_path: str, begin_time: float, finish_time: float, d
         ValueError: If begin_time is not less than finish_time.
         IOError: If there are issues during the clip creation process.
     """
+    # Protects against invalid time ranges
     if begin_time >= finish_time:
         raise ValueError("begin_time must be less than finish_time")
+    
+    # We use FFmpeg instead of MoviePy's native subclip because FFmpeg is faster and
+    # more reliable for large files or odd codecs. Encoding with H.264 ensures broad compatibility.
     ffmpeg_command = [
         "ffmpeg",
-        "-ss",
-        str(begin_time),
-        "-to",
-        str(finish_time),
-        "-i",
-        source_path,
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "23",
-        "-c:a",
-        "copy",
-        "-y",
-        destination_path,
+        "-ss", str(begin_time),         # seek to the clip start
+        "-to", str(finish_time),        # stop at the clip end
+        "-i", source_path,              # input file
+        "-c:v", "libx264",              # encode video with H.264 for portability
+        "-preset", "medium",            # balance encoding speed vs quality
+        "-crf", "23",                   # constant rate factor for reasonable quality/size
+        "-c:a", "copy",                 # copy audio without re-encoding to save time
+        "-y",                           # overwrite existing output if present
+        destination_path,               # where the clip will be saved
     ]
 
+
     try:
+        # Run FFmpeg as an external process. We capture logs so that if something
+        # goes wrong, we can debug by inspecting FFmpeg's own output.
         execution_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output_data, _ = execution_process.communicate()
         logger.debug(f"FFmpeg output: {output_data.decode('utf-8', errors='ignore')}")

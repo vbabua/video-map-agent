@@ -7,13 +7,33 @@ from typing import Dict
 
 from loguru import logger
 
-from mcp.video.ingestion.data_models import IndexedTable, IndexedTableInfo
+from mcp.media.ingestion.data_models import IndexedTable, IndexedTableInfo
 
 logger = logger.bind(name="TableManager")
 
 DEFAULT_STORED_TABLES_REGISTRY_PATH = ".storage_records"
 
 MEDIA_INDEXES_STORAGE: Dict[str, IndexedTableInfo] = {}
+
+def fetch_table(media_identifier: str) -> Dict[str, IndexedTable]:
+    """
+    Fetch an indexed media table by its identifier from the global registry.  
+    Args:
+        media_identifier (str): Unique identifier for the media.
+    Returns:
+        Dict[str, IndexedTable]: The indexed media table.
+    Raises:
+        KeyError: If the media identifier is not found in the registry."""
+    table_registry = get_table_registry()
+    logger.info(f"Registry: {table_registry}")
+    
+    table_info = table_registry.get(media_identifier)
+    
+    if isinstance(table_info, str):
+        table_info = json.loads(table_info)
+    
+    logger.info(f"Table Info: {table_info}")
+    return IndexedTable.from_info(table_info)
 
 @lru_cache(maxsize=1)
 def get_table_registry() -> Dict[str, IndexedTableInfo]:
@@ -36,10 +56,10 @@ def get_table_registry() -> Dict[str, IndexedTableInfo]:
                 most_recent_registry = Path(DEFAULT_STORED_TABLES_REGISTRY_PATH) / most_recent_file
                 with open(str(most_recent_registry), "r") as f:
                     MEDIA_INDEXES_STORAGE = json.load(f)
-                    for identifier, metadata in MEDIA_INDEXES_STORAGE.items():
-                        if isinstance(metadata, str):
-                            metadata = json.loads(metadata)
-                        MEDIA_INDEXES_STORAGE[identifier] = IndexedTableInfo(**metadata)
+                    for key, value in MEDIA_INDEXES_STORAGE.items():
+                        if isinstance(value, str):
+                            value = json.loads(value)
+                        MEDIA_INDEXES_STORAGE[key] = IndexedTableInfo(**value)
                 logger.info(f"Loaded registry from {most_recent_registry}")
         except FileNotFoundError:
             logger.warning("Registry path not found. Starting with an empty registry.")
@@ -66,6 +86,7 @@ def register_new_index(
     Raises:
         IOError: If there are issues writing to the registry file.
     """
+    # Ensure we update the global storage not a local variable
     global MEDIA_INDEXES_STORAGE
     indexed_table_info = IndexedTableInfo(
         media_identifier=media_identifier,
@@ -74,12 +95,15 @@ def register_new_index(
         visual_segments_view=visual_segments_name,
         sound_segments_view=sound_segments_name,
     ).model_dump_json()
+    
     MEDIA_INDEXES_STORAGE[media_identifier] = indexed_table_info
 
     current_datetime = datetime.now()
     datetime_string = current_datetime.strftime("%Y-%m-%d%H:%M:%S")
     registry_directory = Path(DEFAULT_STORED_TABLES_REGISTRY_PATH)
     registry_directory.mkdir(parents=True, exist_ok=True)
+    
+    # Save a snapshot of the current global registry to disk as JSON
     with open(registry_directory / f"registry_{datetime_string}.json", "w") as f:
         for key, value in MEDIA_INDEXES_STORAGE.items():
             if isinstance(value, IndexedTableInfo):
@@ -89,20 +113,3 @@ def register_new_index(
 
     logger.info(f"Media index '{media_identifier}' registered in the global registry.")
 
-
-def fetch_table(media_identifier: str) -> Dict[str, IndexedTable]:
-    """
-    Fetch an indexed media table by its identifier from the global registry.  
-    Args:
-        media_identifier (str): Unique identifier for the media.
-    Returns:
-        Dict[str, IndexedTable]: The indexed media table.
-    Raises:
-        KeyError: If the media identifier is not found in the registry."""
-    table_registry = get_table_registry()
-    logger.info(f"Registry: {table_registry}")
-    table_info = table_registry.get(media_identifier)
-    if isinstance(table_info, str):
-        table_info = json.loads(table_info)
-    logger.info(f"Table Info: {table_info}")
-    return IndexedTable.from_info(table_info)

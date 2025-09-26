@@ -14,13 +14,13 @@ from pixeltable.functions.video import extract_audio
 from pixeltable.iterators import AudioSplitter
 from pixeltable.iterators.video import FrameIterator
 
-import mcp.video.ingestion.table_manager as table_manager
+import mcp.media.ingestion.table_manager as table_manager
 from mcp.config import get_settings
-from mcp.video.ingestion.utilities import extract_transcript_content, scale_image
-from mcp.video.ingestion.media_tools import transcode_media_file
+from mcp.media.ingestion.utilities import extract_transcript_content, scale_image
+from mcp.media.ingestion.media_tools import transcode_media_file
 
 if TYPE_CHECKING:
-    from mcp.video.ingestion.data_models import IndexedTable
+    from mcp.media.ingestion.data_models import IndexedTable
 
 logger = logger.bind(name="MediaAnalyzer")
 config = get_settings()
