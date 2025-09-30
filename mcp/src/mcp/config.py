@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     SPEECH_TRANSCRIPTION_MODEL: str = "gpt-4o-mini-transcribe" 
     VISUAL_CAPTION_MODEL: str = "gpt-4o-mini"
+    CAPTION_SIMILARITY_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     FRAME_EXTRACTION_RATE: int = 45
     SOUND_SEGMENT_DURATION: int = 10
@@ -25,7 +26,7 @@ class Settings(BaseSettings):
 
     IMAGE_RESIZE_WIDTH: int = 1024
     IMAGE_RESIZE_HEIGHT: int = 768
-    CAPTION_SIMILARITY_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    
 
     CAPTION_MODEL_PROMPT: str = "Describe what is happening in the image"
     DELTA_SECONDS_FRAME_INTERVAL: float = 5.0
